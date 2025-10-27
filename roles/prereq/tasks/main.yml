@@ -33,6 +33,22 @@
     reload: true
   tags: sysctl
 
+- name: Increase inotify max_user_watches for Prometheus and monitoring tools
+  ansible.posix.sysctl:
+    name: fs.inotify.max_user_watches
+    value: "524288"
+    state: present
+    reload: true
+  tags: sysctl
+
+- name: Increase inotify max_user_instances for Prometheus and monitoring tools
+  ansible.posix.sysctl:
+    name: fs.inotify.max_user_instances
+    value: "1024"
+    state: present
+    reload: true
+  tags: sysctl
+
 - name: Add br_netfilter to /etc/modules-load.d/
   ansible.builtin.copy:
     content: br_netfilter
