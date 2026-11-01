@@ -27,6 +27,11 @@ rules:
         resources: ["leases"]
       - group: "discovery.k8s.io"
         resources: ["endpointslices"]
+      - group: "autoscaling.k8s.io"
+        resources:
+          - verticalpodautoscalers
+          - verticalpodautoscalers/*
+          - verticalpodautoscalercheckpoints
       - group: "authentication.k8s.io"
         resources: ["tokenreviews"]
       - group: "authorization.k8s.io"
@@ -46,7 +51,7 @@ rules:
         resources: ["*/status"]
       - group: "batch"
         resources: ["*/status"]
-      - group: "autoscaling.k8s.io"
+      - group: "autoscaling"
         resources: ["*/status"]
       - group: "cert-manager.io"
         resources: ["*/status"]
@@ -63,6 +68,8 @@ rules:
       - group: "image.toolkit.fluxcd.io"
         resources: ["*/status"]
       - group: "kustomize.toolkit.fluxcd.io"
+        resources: ["*/status"]
+      - group: "metallb.io"
         resources: ["*/status"]
       - group: "monitoring.coreos.com"
         resources: ["*/status"]
