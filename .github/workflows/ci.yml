@@ -17,11 +17,15 @@ on:
       - '**/reboot.sh'
       - '**/reset.sh'
 jobs:
-  pre:
-    uses: ./.github/workflows/cache.yml
   lint:
     uses: ./.github/workflows/lint.yml
-    needs: [pre]
+  # Molecule boots VirtualBox VMs, which GitHub-hosted runners can't do.
+  # Set the MOLECULE_RUNNER repository variable to the label of a
+  # self-hosted runner with VirtualBox and Vagrant to turn these on.
+  pre:
+    if: vars.MOLECULE_RUNNER != ''
+    uses: ./.github/workflows/cache.yml
   test:
+    if: vars.MOLECULE_RUNNER != ''
     uses: ./.github/workflows/test.yml
     needs: [pre, lint]

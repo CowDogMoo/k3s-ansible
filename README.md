@@ -215,7 +215,10 @@ Be sure to see [this post](https://github.com/techno-tim/k3s-ansible/discussions
 ### Testing the playbook using molecule
 
 This playbook includes a [molecule](https://molecule.rtfd.io/)-based test setup.
-It is run automatically in CI, but you can also run the tests locally.
+The scenarios boot VirtualBox VMs, so CI only runs them when the
+`MOLECULE_RUNNER` repository variable names a self-hosted runner with
+VirtualBox and Vagrant; linting always runs on GitHub-hosted runners.
+You can also run the tests locally.
 This might be helpful for quick feedback in a few cases.
 You can find more information about it [here](molecule/README.md).
 
