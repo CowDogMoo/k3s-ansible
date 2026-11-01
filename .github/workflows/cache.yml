@@ -5,7 +5,7 @@ on:
 jobs:
   molecule:
     name: cache
-    runs-on: self-hosted
+    runs-on: ${{ vars.MOLECULE_RUNNER }}
     env:
       PYTHON_VERSION: "3.11"
 
