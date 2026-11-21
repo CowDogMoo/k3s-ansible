@@ -1,0 +1,27 @@
+---
+# apt reads apt.conf.d in lexical order and the last value wins, so this file
+# overrides 50unattended-upgrades without editing the distribution's conffile.
+- name: Override Unattended-Upgrade::Automatic-Reboot
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/52unattended-upgrades-no-reboot
+    content: |
+      // Managed by k3s-ansible (node_resilience role).
+      // kured reboots nodes one at a time after draining them. Upgrades still
+      // install; this only stops unattended-upgrades rebooting on its own.
+      Unattended-Upgrade::Automatic-Reboot "false";
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Read the effective Automatic-Reboot setting
+  ansible.builtin.command:
+    argv: [apt-config, shell, AUTO_REBOOT, "Unattended-Upgrade::Automatic-Reboot"]
+  register: node_resilience_auto_reboot
+  changed_when: false
+  check_mode: false
+
+- name: Check that unattended-upgrades will not reboot the node
+  ansible.builtin.assert:
+    that: node_resilience_auto_reboot.stdout | trim == "AUTO_REBOOT='false'"
+    fail_msg: "apt still resolves Automatic-Reboot to: {{ node_resilience_auto_reboot.stdout }}"
+    quiet: true

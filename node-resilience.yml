@@ -1,0 +1,32 @@
+---
+# Applies the node_resilience role to a running cluster, one node at a time:
+# unattended-upgrades stops rebooting nodes on its own (kured in the cluster
+# reboots them instead, one at a time after a drain), and DHCP-addressed nodes
+# keep their address through a link flap. Start with one worker
+# (--limit <worker>), then do each server on its own with console access ready.
+- name: Keep nodes addressed through link flaps and stop uncoordinated reboots
+  hosts: k3s_cluster
+  serial: 1
+  any_errors_fatal: true
+  become: true
+  gather_facts: true
+  vars:
+    netplan_keep_config_apply: true
+  roles:
+    - role: node_resilience
+  post_tasks:
+    - name: Wait for the local API server and etcd to be ready
+      ansible.builtin.command: k3s kubectl get --raw=/readyz
+      register: node_resilience_readyz
+      until: node_resilience_readyz.rc == 0 and node_resilience_readyz.stdout == "ok"
+      retries: 40
+      delay: 6
+      changed_when: false
+      check_mode: false
+      when: inventory_hostname in groups[group_name_master | default('master')]
+
+    - name: Wait for the node to be Ready
+      ansible.builtin.command: k3s kubectl wait --for=condition=Ready node/{{ ansible_hostname }} --timeout=180s
+      delegate_to: "{{ groups[group_name_master | default('master')][0] }}"
+      changed_when: false
+      check_mode: false

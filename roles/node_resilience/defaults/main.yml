@@ -1,0 +1,22 @@
+---
+# Stop unattended-upgrades from rebooting the node on its own. Packages still
+# install and /var/run/reboot-required still gets written; kured, deployed
+# in the cluster, reboots one node at a time after draining it.
+unattended_upgrades_disable_auto_reboot: true
+
+# Netplan IDs that should keep their DHCP address through a link flap.
+# Defaults to the interface of the default route. An ID is changed only when
+# netplan already defines it with dhcp4: true, so statically addressed and
+# match-based definitions are left alone.
+netplan_keep_config_interfaces: >-
+  {{ [ansible_facts['default_ipv4']['interface']]
+     if 'interface' in (ansible_facts['default_ipv4'] | default({}))
+     else [] }}
+
+# Run `netplan apply` when the drop-in changes. Off by default so a site.yml
+# run doesn't reconfigure every node at once; without it the drop-in takes
+# effect at the next reboot. node-resilience.yml turns it on and works
+# through the nodes one at a time.
+netplan_keep_config_apply: false
+
+netplan_keep_config_file: /etc/netplan/60-keep-config-on-link-loss.yaml

@@ -104,6 +104,29 @@ init; servers restart one at a time:
 ansible-playbook audit-log.yml -i inventory/my-cluster/hosts.ini
 ```
 
+### 🔌 Link flaps and reboots
+
+The `node_resilience` role, run by `site.yml`, does two things on each node:
+
+- Netplan IDs that get their address from DHCP (by default, the default
+  route's interface) get `critical: true` and `ignore-carrier: true` in
+  `/etc/netplan/60-keep-config-on-link-loss.yaml`. Without them
+  systemd-networkd drops the DHCP address when the link goes down, and the node
+  stays unaddressed for about a minute after the link comes back, which can
+  hold up etcd quorum.
+- `Unattended-Upgrade::Automatic-Reboot` is set to `false` in
+  `/etc/apt/apt.conf.d/52unattended-upgrades-no-reboot`. Upgrades still
+  install. Reboots are left to [kured](https://kured.dev/) in the cluster,
+  which reboots one node at a time after draining it.
+
+`site.yml` only writes the netplan drop-in, which takes effect at the next
+reboot. For a running cluster, apply both changes one node at a time: start
+with a worker, then each server on its own, with console access ready:
+
+```bash
+ansible-playbook node-resilience.yml -i inventory/my-cluster/hosts.ini --limit <node>
+```
+
 ## ⚙️ Kube Config
 
 To copy your `kube config` locally so that you can access your **Kubernetes** cluster run:
@@ -154,6 +177,10 @@ See the commands [here](https://technotim.live/posts/k3s-etcd-ansible/#testing-y
 | `k3s_server` | `k3s_audit_log_maxage` | int | `7` | Not required | Days to keep rotated audit logs |
 | `k3s_server` | `k3s_audit_log_maxbackup` | int | `5` | Not required | Number of rotated audit logs to keep |
 | `k3s_server` | `k3s_audit_log_maxsize` | int | `50` | Not required | Size in megabytes at which the audit log rotates |
+| `node_resilience` | `unattended_upgrades_disable_auto_reboot` | bool | `true` | Not required | Stop unattended-upgrades rebooting nodes on their own |
+| `node_resilience` | `netplan_keep_config_interfaces` | list | default route's interface | Not required | Netplan IDs to keep addressed through link loss; IDs without `dhcp4: true` are skipped |
+| `node_resilience` | `netplan_keep_config_apply` | bool | `false` | Not required | Run `netplan apply` when the drop-in changes (`node-resilience.yml` sets it) |
+| `node_resilience` | `netplan_keep_config_file` | string | `/etc/netplan/60-keep-config-on-link-loss.yaml` | Not required | Path of the netplan drop-in |
 | `k3s_server` | `k3s_create_kubectl_symlink` | bool | `false` | Not required | Create the kubectl -> k3s symlink |
 | `k3s_server` | `k3s_create_crictl_symlink` | bool | `true` | Not required | Create the crictl -> k3s symlink |
 | `k3s_server` | `kube_vip_arp` | bool | `true` | Not required | Enables kube-vip ARP broadcasts |

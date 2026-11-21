@@ -1,0 +1,10 @@
+---
+- name: Stop unattended-upgrades rebooting the node
+  ansible.builtin.include_tasks: unattended_upgrades.yml
+  when:
+    - ansible_facts['os_family'] == "Debian"
+    - unattended_upgrades_disable_auto_reboot | bool
+
+- name: Keep DHCP addresses through link loss
+  ansible.builtin.include_tasks: netplan.yml
+  when: netplan_keep_config_interfaces | length > 0
