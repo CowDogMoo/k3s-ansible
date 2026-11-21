@@ -119,21 +119,30 @@ The `node_resilience` role, run by `site.yml`, does two things on each node:
   install. Reboots are left to [kured](https://kured.dev/) in the cluster,
   which reboots one node at a time after draining it.
 
+Nothing reboots a node once Automatic-Reboot is off, so kured has to be
+running first. On a running cluster, roll out in this order:
+
+1. Deploy kured in the cluster and check its DaemonSet is ready on every
+   node. Don't run `site.yml` or `node-resilience.yml` against the cluster
+   before then.
+2. Straight away, turn off the automatic reboots on every node, so kured and
+   unattended-upgrades don't both reboot nodes for longer than they have to.
+   The two halves are tagged `node_resilience_apt` and
+   `node_resilience_netplan`:
+
+   ```bash
+   ansible-playbook node-resilience.yml -i inventory/my-cluster/hosts.ini --tags node_resilience_apt
+   ```
+
+3. Apply the netplan drop-in one node at a time: start with a worker, then
+   each server on its own, with console access ready:
+
+   ```bash
+   ansible-playbook node-resilience.yml -i inventory/my-cluster/hosts.ini --tags node_resilience_netplan --limit <node>
+   ```
+
 `site.yml` only writes the netplan drop-in, which takes effect at the next
-reboot. For a running cluster, apply both changes one node at a time: start
-with a worker, then each server on its own, with console access ready:
-
-```bash
-ansible-playbook node-resilience.yml -i inventory/my-cluster/hosts.ini --limit <node>
-```
-
-The two halves are tagged `node_resilience_apt` and `node_resilience_netplan`.
-Turn off the automatic reboots on every node before kured goes live, so the
-two never reboot different nodes at the same time:
-
-```bash
-ansible-playbook node-resilience.yml -i inventory/my-cluster/hosts.ini --tags node_resilience_apt
-```
+reboot.
 
 ## ⚙️ Kube Config
 
@@ -188,7 +197,6 @@ See the commands [here](https://technotim.live/posts/k3s-etcd-ansible/#testing-y
 | `node_resilience` | `unattended_upgrades_disable_auto_reboot` | bool | `true` | Not required | Stop unattended-upgrades rebooting nodes on their own |
 | `node_resilience` | `netplan_keep_config_interfaces` | list | default route's interface | Not required | Netplan IDs to keep addressed through link loss; IDs without `dhcp4: true` are skipped |
 | `node_resilience` | `netplan_keep_config_apply` | bool | `false` | Not required | Run `netplan apply` when the drop-in changes (`node-resilience.yml` sets it) |
-| `node_resilience` | `netplan_keep_config_file` | string | `/etc/netplan/60-keep-config-on-link-loss.yaml` | Not required | Path of the netplan drop-in |
 | `k3s_server` | `k3s_create_kubectl_symlink` | bool | `false` | Not required | Create the kubectl -> k3s symlink |
 | `k3s_server` | `k3s_create_crictl_symlink` | bool | `true` | Not required | Create the crictl -> k3s symlink |
 | `k3s_server` | `kube_vip_arp` | bool | `true` | Not required | Enables kube-vip ARP broadcasts |

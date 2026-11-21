@@ -18,5 +18,3 @@ netplan_keep_config_interfaces: >-
 # effect at the next reboot. node-resilience.yml turns it on and works
 # through the nodes one at a time.
 netplan_keep_config_apply: false
-
-netplan_keep_config_file: /etc/netplan/60-keep-config-on-link-loss.yaml

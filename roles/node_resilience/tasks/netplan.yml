@@ -27,21 +27,21 @@
     - name: Write the netplan drop-in
       ansible.builtin.template:
         src: keep-config-on-link-loss.yaml.j2
-        dest: "{{ netplan_keep_config_file }}"
+        dest: /etc/netplan/60-keep-config-on-link-loss.yaml
         owner: root
         group: root
         mode: "0600"
         validate: >-
           sh -c 'root=$(mktemp -d) && mkdir -p "$root/etc" &&
           cp -a /etc/netplan "$root/etc/netplan" &&
-          cp "$1" "$root{{ netplan_keep_config_file }}" &&
+          cp "$1" "$root/etc/netplan/60-keep-config-on-link-loss.yaml" &&
           netplan generate --root-dir "$root"; rc=$?; rm -rf "$root"; exit $rc' _ %s
       register: node_resilience_netplan_dropin
       when: node_resilience_dhcp_ids | length > 0
 
     - name: Remove the netplan drop-in when no ID uses DHCP
       ansible.builtin.file:
-        path: "{{ netplan_keep_config_file }}"
+        path: /etc/netplan/60-keep-config-on-link-loss.yaml
         state: absent
       register: node_resilience_netplan_removed
       when: node_resilience_dhcp_ids | length == 0

@@ -21,8 +21,3 @@ argument_specs:
         default: false
         description:
           - Run netplan apply when the drop-in changes
-      netplan_keep_config_file:
-        type: str
-        default: /etc/netplan/60-keep-config-on-link-loss.yaml
-        description:
-          - Path of the netplan drop-in
