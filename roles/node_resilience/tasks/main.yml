@@ -1,6 +1,6 @@
 ---
 # Tagged so the two halves can be rolled out separately, e.g.
-# --tags node_resilience_apt on every node once kured is running.
+# --tags node_resilience_apt on every node right before kured goes live.
 - name: Stop unattended-upgrades rebooting the node
   ansible.builtin.include_tasks:
     file: unattended_upgrades.yml

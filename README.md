@@ -119,21 +119,19 @@ The `node_resilience` role, run by `site.yml`, does two things on each node:
   install. Reboots are left to [kured](https://kured.dev/) in the cluster,
   which reboots one node at a time after draining it.
 
-Nothing reboots a node once Automatic-Reboot is off, so kured has to be
-running first. On a running cluster, roll out in this order:
+Turn the automatic reboots off on every node first, then deploy kured in the
+same session, so no node is ever under both mechanisms at once and none goes
+long without reboots. On a running cluster:
 
-1. Deploy kured in the cluster and check its DaemonSet is ready on every
-   node. Don't run `site.yml` or `node-resilience.yml` against the cluster
-   before then.
-2. Straight away, turn off the automatic reboots on every node, so kured and
-   unattended-upgrades don't both reboot nodes for longer than they have to.
-   The two halves are tagged `node_resilience_apt` and
-   `node_resilience_netplan`:
+1. Turn off the automatic reboots on every node. The role's two halves are
+   tagged `node_resilience_apt` and `node_resilience_netplan`:
 
    ```bash
    ansible-playbook node-resilience.yml -i inventory/my-cluster/hosts.ini --tags node_resilience_apt
    ```
 
+2. In the same session, deploy kured in the cluster and check its DaemonSet
+   is ready on every node.
 3. Apply the netplan drop-in one node at a time: start with a worker, then
    each server on its own, with console access ready:
 
@@ -141,8 +139,14 @@ running first. On a running cluster, roll out in this order:
    ansible-playbook node-resilience.yml -i inventory/my-cluster/hosts.ini --tags node_resilience_netplan --limit <node>
    ```
 
-`site.yml` only writes the netplan drop-in, which takes effect at the next
-reboot.
+`site.yml` turns the automatic reboots off too, so on a running cluster
+follow it with kured the same way. It only writes the netplan drop-in, which
+takes effect at the next reboot; `node-resilience.yml` applies it later even
+if `site.yml` already wrote it.
+
+CoreDNS needs no k3s server setting: the cluster keeps k3s's bundled CoreDNS,
+whose manifest leaves `spec.replicas` unset, and Flux holds it at two replicas
+with an HPA and a PodDisruptionBudget.
 
 ## ⚙️ Kube Config
 
