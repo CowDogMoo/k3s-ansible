@@ -20,4 +20,5 @@ argument_specs:
         type: bool
         default: false
         description:
-          - Run netplan apply when the drop-in changes
+          - Run netplan apply when the drop-in changes or networkd hasn't
+            picked it up yet

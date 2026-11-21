@@ -25,3 +25,4 @@
     that: node_resilience_auto_reboot.stdout | trim == "AUTO_REBOOT='false'"
     fail_msg: "apt still resolves Automatic-Reboot to: {{ node_resilience_auto_reboot.stdout }}"
     quiet: true
+  when: not ansible_check_mode

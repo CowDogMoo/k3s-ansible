@@ -13,8 +13,8 @@ netplan_keep_config_interfaces: >-
      if 'interface' in (ansible_facts['default_ipv4'] | default({}))
      else [] }}
 
-# Run `netplan apply` when the drop-in changes. Off by default so a site.yml
-# run doesn't reconfigure every node at once; without it the drop-in takes
-# effect at the next reboot. node-resilience.yml turns it on and works
-# through the nodes one at a time.
+# Run `netplan apply` when the drop-in changes or networkd hasn't picked it
+# up yet. Off by default so a site.yml run doesn't reconfigure every node at
+# once; without it the drop-in takes effect at the next reboot.
+# node-resilience.yml turns it on and works through the nodes one at a time.
 netplan_keep_config_apply: false

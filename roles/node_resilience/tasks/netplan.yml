@@ -103,4 +103,6 @@
       loop: "{{ node_resilience_networkd.results }}"
       loop_control:
         label: "{{ item.item }}"
-      when: netplan_keep_config_apply | bool
+      when:
+        - netplan_keep_config_apply | bool
+        - not ansible_check_mode

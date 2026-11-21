@@ -200,7 +200,7 @@ See the commands [here](https://technotim.live/posts/k3s-etcd-ansible/#testing-y
 | `k3s_server` | `k3s_audit_log_maxsize` | int | `50` | Not required | Size in megabytes at which the audit log rotates |
 | `node_resilience` | `unattended_upgrades_disable_auto_reboot` | bool | `true` | Not required | Stop unattended-upgrades rebooting nodes on their own |
 | `node_resilience` | `netplan_keep_config_interfaces` | list | default route's interface | Not required | Netplan IDs to keep addressed through link loss; IDs without `dhcp4: true` are skipped |
-| `node_resilience` | `netplan_keep_config_apply` | bool | `false` | Not required | Run `netplan apply` when the drop-in changes (`node-resilience.yml` sets it) |
+| `node_resilience` | `netplan_keep_config_apply` | bool | `false` | Not required | Run `netplan apply` when the drop-in changes or networkd hasn't picked it up yet (`node-resilience.yml` sets it) |
 | `k3s_server` | `k3s_create_kubectl_symlink` | bool | `false` | Not required | Create the kubectl -> k3s symlink |
 | `k3s_server` | `k3s_create_crictl_symlink` | bool | `true` | Not required | Create the crictl -> k3s symlink |
 | `k3s_server` | `kube_vip_arp` | bool | `true` | Not required | Enables kube-vip ARP broadcasts |
