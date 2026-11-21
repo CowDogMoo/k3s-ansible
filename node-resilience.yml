@@ -24,9 +24,11 @@
       changed_when: false
       check_mode: false
       when: inventory_hostname in groups[group_name_master | default('master')]
+      tags: [node_resilience_netplan]
 
     - name: Wait for the node to be Ready
       ansible.builtin.command: k3s kubectl wait --for=condition=Ready node/{{ ansible_hostname }} --timeout=180s
       delegate_to: "{{ groups[group_name_master | default('master')][0] }}"
       changed_when: false
       check_mode: false
+      tags: [node_resilience_netplan]

@@ -1,10 +1,20 @@
 ---
+# Tagged so the two halves can be rolled out separately, e.g.
+# --tags node_resilience_apt on every node before kured goes live.
 - name: Stop unattended-upgrades rebooting the node
-  ansible.builtin.include_tasks: unattended_upgrades.yml
+  ansible.builtin.include_tasks:
+    file: unattended_upgrades.yml
+    apply:
+      tags: [node_resilience_apt]
+  tags: [node_resilience_apt]
   when:
     - ansible_facts['os_family'] == "Debian"
     - unattended_upgrades_disable_auto_reboot | bool
 
 - name: Keep DHCP addresses through link loss
-  ansible.builtin.include_tasks: netplan.yml
+  ansible.builtin.include_tasks:
+    file: netplan.yml
+    apply:
+      tags: [node_resilience_netplan]
+  tags: [node_resilience_netplan]
   when: netplan_keep_config_interfaces | length > 0

@@ -127,6 +127,14 @@ with a worker, then each server on its own, with console access ready:
 ansible-playbook node-resilience.yml -i inventory/my-cluster/hosts.ini --limit <node>
 ```
 
+The two halves are tagged `node_resilience_apt` and `node_resilience_netplan`.
+Turn off the automatic reboots on every node before kured goes live, so the
+two never reboot different nodes at the same time:
+
+```bash
+ansible-playbook node-resilience.yml -i inventory/my-cluster/hosts.ini --tags node_resilience_apt
+```
+
 ## ⚙️ Kube Config
 
 To copy your `kube config` locally so that you can access your **Kubernetes** cluster run:
