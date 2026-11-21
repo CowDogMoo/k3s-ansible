@@ -1,0 +1,14 @@
+# {{ ansible_managed }}
+# Keep the DHCP address through a switch reboot or cable flap.
+# ignore-carrier renders ConfigureWithoutCarrier=yes, and networkd's
+# IgnoreCarrierLoss defaults to that, so carrier loss no longer drops the
+# address. critical renders KeepConfiguration=true, so the address also stays
+# if the lease runs out while the DHCP server is unreachable.
+network:
+  version: 2
+  ethernets:
+{% for id in node_resilience_dhcp_ids %}
+    {{ id }}:
+      critical: true
+      ignore-carrier: true
+{% endfor %}

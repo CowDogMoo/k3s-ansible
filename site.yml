@@ -27,6 +27,8 @@
       when: proxmox_lxc_configure
     - role: prereq
       become: true
+    - role: node_resilience
+      become: true
     - role: download
       become: true
     - role: raspberrypi

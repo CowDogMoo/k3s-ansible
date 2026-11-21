@@ -104,6 +104,50 @@ init; servers restart one at a time:
 ansible-playbook audit-log.yml -i inventory/my-cluster/hosts.ini
 ```
 
+### 🔌 Link flaps and reboots
+
+The `node_resilience` role, run by `site.yml`, does two things on each node:
+
+- Netplan IDs that get their address from DHCP (by default, the default
+  route's interface) get `critical: true` and `ignore-carrier: true` in
+  `/etc/netplan/60-keep-config-on-link-loss.yaml`. Without them
+  systemd-networkd drops the DHCP address when the link goes down, and the node
+  stays unaddressed for about a minute after the link comes back, which can
+  hold up etcd quorum.
+- `Unattended-Upgrade::Automatic-Reboot` is set to `false` in
+  `/etc/apt/apt.conf.d/52unattended-upgrades-no-reboot`. Upgrades still
+  install. Reboots are left to [kured](https://kured.dev/) in the cluster,
+  which reboots one node at a time after draining it.
+
+Turn the automatic reboots off on every node first, then deploy kured in the
+same session, so no node is ever under both mechanisms at once and none goes
+long without reboots. On a running cluster:
+
+1. Turn off the automatic reboots on every node. The role's two halves are
+   tagged `node_resilience_apt` and `node_resilience_netplan`:
+
+   ```bash
+   ansible-playbook node-resilience.yml -i inventory/my-cluster/hosts.ini --tags node_resilience_apt
+   ```
+
+2. In the same session, deploy kured in the cluster and check its DaemonSet
+   is ready on every node.
+3. Apply the netplan drop-in one node at a time: start with a worker, then
+   each server on its own, with console access ready:
+
+   ```bash
+   ansible-playbook node-resilience.yml -i inventory/my-cluster/hosts.ini --tags node_resilience_netplan --limit <node>
+   ```
+
+`site.yml` turns the automatic reboots off too, so on a running cluster
+follow it with kured the same way. It only writes the netplan drop-in, which
+takes effect at the next reboot; `node-resilience.yml` applies it later even
+if `site.yml` already wrote it.
+
+CoreDNS needs no k3s server setting: the cluster keeps k3s's bundled CoreDNS,
+whose manifest leaves `spec.replicas` unset, and Flux holds it at two replicas
+with an HPA and a PodDisruptionBudget.
+
 ## ⚙️ Kube Config
 
 To copy your `kube config` locally so that you can access your **Kubernetes** cluster run:
@@ -203,6 +247,9 @@ See the commands [here](https://technotim.live/posts/k3s-etcd-ansible/#testing-y
 | `k3s_server_post` | `metal_lb_bgp_peer_asn` | string | `~` | Not required | BGP peer ASN configurations |
 | `k3s_server_post` | `metal_lb_bgp_peer_address` | string | `~` | Not required | BGP peer address |
 | `lxc` | `custom_reboot_command` | string | `~` | Not required | Command to run on reboot |
+| `node_resilience` | `unattended_upgrades_disable_auto_reboot` | bool | `true` | Not required | Stop unattended-upgrades rebooting nodes on their own |
+| `node_resilience` | `netplan_keep_config_interfaces` | list | default route's interface | Not required | Netplan IDs to keep addressed through link loss; IDs without `dhcp4: true` are skipped |
+| `node_resilience` | `netplan_keep_config_apply` | bool | `false` | Not required | Run `netplan apply` when the drop-in changes or networkd hasn't picked it up yet (`node-resilience.yml` sets it) |
 | `prereq` | `system_timezone` | string | `null` | Not required | Timezone to be set on all nodes |
 | `proxmox_lxc`, `reset_proxmox_lxc` | `proxmox_lxc_ct_ids` | list | ❌ | Required | Proxmox container ID list |
 | `raspberrypi` | `state` | string | `present` | Not required | Indicates whether the k3s prerequisites for Raspberry Pi should be set up (possible values are `present` and `absent`) |

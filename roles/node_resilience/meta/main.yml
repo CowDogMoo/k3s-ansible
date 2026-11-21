@@ -1,0 +1,24 @@
+---
+argument_specs:
+  main:
+    short_description: Keep nodes addressed through link flaps and stop uncoordinated reboots
+    options:
+      unattended_upgrades_disable_auto_reboot:
+        type: bool
+        default: true
+        description:
+          - Override Unattended-Upgrade::Automatic-Reboot to false on Debian
+            and Ubuntu so that only kured reboots nodes
+      netplan_keep_config_interfaces:
+        type: list
+        elements: str
+        description:
+          - Netplan IDs to mark critical and ignore-carrier, so networkd keeps
+            their DHCP address through carrier loss. Defaults to the default
+            route's interface. IDs not defined with dhcp4 true are skipped
+      netplan_keep_config_apply:
+        type: bool
+        default: false
+        description:
+          - Run netplan apply when the drop-in changes or networkd hasn't
+            picked it up yet

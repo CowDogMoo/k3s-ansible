@@ -1,0 +1,109 @@
+---
+- name: Check for netplan
+  ansible.builtin.stat:
+    path: /usr/sbin/netplan
+  register: node_resilience_netplan_bin
+
+- name: Configure netplan
+  when: node_resilience_netplan_bin.stat.exists
+  block:
+    - name: Read dhcp4 for each netplan ID
+      ansible.builtin.command:
+        argv: [netplan, get, "ethernets.{{ item }}.dhcp4"]
+      loop: "{{ netplan_keep_config_interfaces }}"
+      register: node_resilience_dhcp4
+      changed_when: false
+      check_mode: false
+
+    - name: Pick the netplan IDs that use DHCP
+      ansible.builtin.set_fact:
+        node_resilience_dhcp_ids: >-
+          {{ node_resilience_dhcp4.results
+             | selectattr('stdout', 'equalto', 'true')
+             | map(attribute='item') | list }}
+
+    # The candidate is checked with `netplan generate` against a copy of
+    # /etc/netplan, so a bad drop-in never lands where the next boot reads it.
+    - name: Write the netplan drop-in
+      ansible.builtin.template:
+        src: keep-config-on-link-loss.yaml.j2
+        dest: /etc/netplan/60-keep-config-on-link-loss.yaml
+        owner: root
+        group: root
+        mode: "0600"
+        validate: >-
+          sh -c 'root=$(mktemp -d) && mkdir -p "$root/etc" &&
+          cp -a /etc/netplan "$root/etc/netplan" &&
+          cp "$1" "$root/etc/netplan/60-keep-config-on-link-loss.yaml" &&
+          netplan generate --root-dir "$root"; rc=$?; rm -rf "$root"; exit $rc' _ %s
+      register: node_resilience_netplan_dropin
+      when: node_resilience_dhcp_ids | length > 0
+
+    - name: Remove the netplan drop-in when no ID uses DHCP
+      ansible.builtin.file:
+        path: /etc/netplan/60-keep-config-on-link-loss.yaml
+        state: absent
+      register: node_resilience_netplan_removed
+      when: node_resilience_dhcp_ids | length == 0
+
+    - name: Read the rendered networkd configuration before applying
+      ansible.builtin.command:
+        argv: [cat, "/run/systemd/network/10-netplan-{{ item }}.network"]
+      loop: "{{ node_resilience_dhcp_ids }}"
+      register: node_resilience_networkd_before
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      when: netplan_keep_config_apply | bool
+
+    # Also applies when the drop-in was already on disk but networkd still runs
+    # the older render, e.g. after a site.yml run without netplan apply.
+    - name: Apply the netplan configuration
+      ansible.builtin.command: netplan apply
+      changed_when: true
+      register: node_resilience_netplan_applied
+      when:
+        - netplan_keep_config_apply | bool
+        - >-
+          node_resilience_netplan_dropin is changed
+          or node_resilience_netplan_removed is changed
+          or (node_resilience_networkd_before.results
+              | rejectattr('stdout', 'search', '(?m)^ConfigureWithoutCarrier=yes$')
+              | list
+              + node_resilience_networkd_before.results
+              | rejectattr('stdout', 'search', '(?m)^KeepConfiguration=true$')
+              | list) | length > 0
+
+    # Not a handler: the verification read below must run after the wait.
+    - name: Wait for the node to answer again # noqa: no-handler
+      ansible.builtin.wait_for_connection:
+        delay: 5
+        timeout: 120
+      when: node_resilience_netplan_applied is changed
+
+    - name: Read the rendered networkd configuration
+      ansible.builtin.command:
+        argv: [cat, "/run/systemd/network/10-netplan-{{ item }}.network"]
+      loop: "{{ node_resilience_dhcp_ids }}"
+      register: node_resilience_networkd
+      changed_when: false
+      failed_when: false
+      check_mode: false
+      when: netplan_keep_config_apply | bool
+
+    - name: Check networkd keeps the address through carrier loss
+      ansible.builtin.assert:
+        that:
+          - item.rc == 0
+          - item.stdout is search('(?m)^ConfigureWithoutCarrier=yes$')
+          - item.stdout is search('(?m)^KeepConfiguration=true$')
+        fail_msg: >-
+          /run/systemd/network/10-netplan-{{ item.item }}.network is missing or
+          lacks ConfigureWithoutCarrier=yes or KeepConfiguration=true
+        quiet: true
+      loop: "{{ node_resilience_networkd.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when:
+        - netplan_keep_config_apply | bool
+        - not ansible_check_mode
