@@ -198,9 +198,6 @@ See the commands [here](https://technotim.live/posts/k3s-etcd-ansible/#testing-y
 | `k3s_server` | `k3s_audit_log_maxage` | int | `7` | Not required | Days to keep rotated audit logs |
 | `k3s_server` | `k3s_audit_log_maxbackup` | int | `5` | Not required | Number of rotated audit logs to keep |
 | `k3s_server` | `k3s_audit_log_maxsize` | int | `50` | Not required | Size in megabytes at which the audit log rotates |
-| `node_resilience` | `unattended_upgrades_disable_auto_reboot` | bool | `true` | Not required | Stop unattended-upgrades rebooting nodes on their own |
-| `node_resilience` | `netplan_keep_config_interfaces` | list | default route's interface | Not required | Netplan IDs to keep addressed through link loss; IDs without `dhcp4: true` are skipped |
-| `node_resilience` | `netplan_keep_config_apply` | bool | `false` | Not required | Run `netplan apply` when the drop-in changes or networkd hasn't picked it up yet (`node-resilience.yml` sets it) |
 | `k3s_server` | `k3s_create_kubectl_symlink` | bool | `false` | Not required | Create the kubectl -> k3s symlink |
 | `k3s_server` | `k3s_create_crictl_symlink` | bool | `true` | Not required | Create the crictl -> k3s symlink |
 | `k3s_server` | `kube_vip_arp` | bool | `true` | Not required | Enables kube-vip ARP broadcasts |
@@ -250,6 +247,9 @@ See the commands [here](https://technotim.live/posts/k3s-etcd-ansible/#testing-y
 | `k3s_server_post` | `metal_lb_bgp_peer_asn` | string | `~` | Not required | BGP peer ASN configurations |
 | `k3s_server_post` | `metal_lb_bgp_peer_address` | string | `~` | Not required | BGP peer address |
 | `lxc` | `custom_reboot_command` | string | `~` | Not required | Command to run on reboot |
+| `node_resilience` | `unattended_upgrades_disable_auto_reboot` | bool | `true` | Not required | Stop unattended-upgrades rebooting nodes on their own |
+| `node_resilience` | `netplan_keep_config_interfaces` | list | default route's interface | Not required | Netplan IDs to keep addressed through link loss; IDs without `dhcp4: true` are skipped |
+| `node_resilience` | `netplan_keep_config_apply` | bool | `false` | Not required | Run `netplan apply` when the drop-in changes or networkd hasn't picked it up yet (`node-resilience.yml` sets it) |
 | `prereq` | `system_timezone` | string | `null` | Not required | Timezone to be set on all nodes |
 | `proxmox_lxc`, `reset_proxmox_lxc` | `proxmox_lxc_ct_ids` | list | ❌ | Required | Proxmox container ID list |
 | `raspberrypi` | `state` | string | `present` | Not required | Indicates whether the k3s prerequisites for Raspberry Pi should be set up (possible values are `present` and `absent`) |

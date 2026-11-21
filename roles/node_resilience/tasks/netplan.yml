@@ -74,7 +74,8 @@
               | rejectattr('stdout', 'search', '(?m)^KeepConfiguration=true$')
               | list) | length > 0
 
-    - name: Wait for the node to answer again
+    # Not a handler: the verification read below must run after the wait.
+    - name: Wait for the node to answer again # noqa: no-handler
       ansible.builtin.wait_for_connection:
         delay: 5
         timeout: 120
